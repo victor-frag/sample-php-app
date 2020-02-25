@@ -3,19 +3,21 @@ stages:
   - validate
   - deploy
 
+services:
+  - docker:dind
+
 variables:
-  CONTAINER_IMAGE: shashanksinha/php
+  CONTAINER_IMAGE: victorfrag/sample-php
   CONTAINER_IMAGE_LATEST: ${CONTAINER_IMAGE}:${CI_PIPELINE_ID}
   CI_REGISTRY: index.docker.io  # container registry URL
   DOCKER_DRIVER: overlay2
   DOCKER_HOST: tcp://localhost:2375  # required since we use dind
-
+  DOCKER_TLS_CERTDIR: ""
 
 build:
   stage: build
-  image: docker:latest
-  services:
-  - docker:dind
+  image: gitlab/dind
+  
   before_script:
     - echo "FQDN is ${DB_SERVER}"
     - echo "dbname is ${DB_NAME}"
@@ -42,8 +44,7 @@ validate:
   
 deploy:
   stage: deploy
-  image: linkyard/docker-helm
+  image: victorfrag/docker-helm:v2.14.3
   script:
-    - helm init --upgrade
-    - helm repo add stable https://kubernetes-charts.storage.googleapis.com
-    - helm upgrade --install  php-app --namespace default --wait --set image.tag=${CI_PIPELINE_ID} --set replicaCount=2 helm-data/
+    - helm init
+    - helm upgrade --install php-app --namespace development --wait --set image.tag=${CI_PIPELINE_ID} --set replicaCount=2 helm-data/
